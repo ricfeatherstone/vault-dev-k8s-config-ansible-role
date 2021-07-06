@@ -1,0 +1,43 @@
+- name: Build terraform image
+  docker_image:
+    build:
+      path: '{{ dockerfile_path }}'
+      dockerfile: '{{ dockerfile }}'
+      pull: no
+    name: '{{ terraform_job_image }}'
+    tag: latest
+    push: no
+    source: build
+    force_source: yes
+
+- name: Load terraform image into kind cluster
+  command: kind load docker-image --name osdk-test '{{ terraform_job_image }}'
+  register: result
+  changed_when: '"not yet present" in result.stdout'
+
+- name: Run terraform apply job
+  community.kubernetes.k8s:
+    definition:
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: terraform
+        namespace: '{{ terraform_job_namespace }}'
+      spec:
+        template:
+          metadata:
+            name: terraform
+          spec:
+            restartPolicy: Never
+            containers:
+              - name: terraform
+                image: '{{ terraform_job_image }}'
+                imagePullPolicy: Never
+                env:
+                  - name: VAULT_ADDR
+                    value: '{{ vault_addr }}'
+                  - name: VAULT_TOKEN
+                    value: '{{ vault_token }}'
+                command:
+                  - ./terraform-apply
+    state: present

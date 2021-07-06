@@ -1,0 +1,9 @@
+---
+
+dockerfile_path: .
+dockerfile: Dockerfile.terraform
+terraform_job_image: terraform
+terraform_job_namespace: vault
+vault_addr: http://vault.vault.svc:8200
+vault_token: root
+
